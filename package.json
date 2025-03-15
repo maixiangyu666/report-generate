@@ -1,0 +1,197 @@
+{
+  "type": "commonjs",
+  "name": "report-generate",
+  "displayName": "report-generate",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.89.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:report-generate.generateDailyReport",
+    "onCommand:report-generate.generateWeeklyReport",
+    "onCommand:report-generate.generateMonthlyReport",
+    "onCommand:report-generate.configureSettings",
+    "onView:report-generate.settings"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "report-generate.generateDailyReport",
+        "title": "Generate Daily Report"
+      },
+      {
+        "command": "report-generate.generateWeeklyReport",
+        "title": "Generate Weekly Report"
+      },
+      {
+        "command": "report-generate.generateMonthlyReport",
+        "title": "Generate Monthly Report"
+      },
+      {
+        "command": "report-generate.configureSettings",
+        "title": "Configure Report Settings"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "report-generate",
+          "title": "Report Generator",
+          "icon": "images/icon.png"
+        }
+      ]
+    },
+    "views": {
+      
+      "report-generate": [
+        {
+          "id": "report-generate.settings",
+          "name": "Settings",
+          "type": "webview",
+          "contextualTitle": "Report Settings",
+       "icon": "images/icon.png",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Report Generator",
+      "properties": {
+        "reportGenerator.startDate": {
+          "type": "string",
+          "default": "",
+          "description": "Start date for report generation"
+        },
+        "reportGenerator.endDate": {
+          "type": "string",
+          "default": "",
+          "description": "End date for report generation"
+        },
+        "reportGenerator.baseURL": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL for API requests"
+        },
+        "reportGenerator.modelId": {
+          "type": "string",
+          "default": "",
+          "description": "Model ID for AI generation"
+        },
+        "reportGenerator.timeRange": {
+          "type": "string",
+          "default": "",
+          "description": "Time range for report generation"
+        },
+        "reportGenerator.additionalInfo": {
+          "type": "string",
+          "default": "",
+          "description": "Additional information for reports"
+        },
+        "reportGenerator.reportType": {
+          "type": "string",
+          "enum": ["daily", "weekly", "monthly"],
+          "default": "daily",
+          "description": "Type of report to generate"
+        },
+        "reportGenerator.projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Project name"
+              },
+              "path": {
+                "type": "string",
+                "description": "Project path"
+              }
+            },
+            "required": ["name", "path"]
+          },
+          "default": [],
+          "description": "List of projects with their paths"
+        },
+        "reportGenerator.aiModel": {
+          "type": "string",
+          "enum": [
+            "deepseek",
+            "openai",
+            "custom"
+          ],
+          "default": "deepseek",
+          "description": "AI model to use for report generation"
+        },
+        "reportGenerator.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the selected AI model"
+        },
+        "reportGenerator.dailyReportTime": {
+          "type": "string",
+          "default": "09:00",
+          "description": "Time to generate daily report (HH:mm)"
+        },
+        "reportGenerator.weeklyReportDay": {
+          "type": "string",
+          "enum": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "default": "Monday",
+          "description": "Day to generate weekly report"
+        },
+        "reportGenerator.monthlyReportDay": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 28,
+          "default": 1,
+          "description": "Day of month to generate monthly report"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "webpack --config webpack.config.cjs",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "dependencies": {
+    "axios": "^1.8.1",
+    "node-cron": "^3.0.3",
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/node-cron": "^3.0.11",
+    "@types/vscode": "^1.98.0",
+    "@typescript-eslint/eslint-plugin": "^8.25.0",
+    "@typescript-eslint/parser": "^8.25.0",
+    "@vscode/test-electron": "^2.4.1",
+    "copy-webpack-plugin": "^13.0.0",
+    "eslint": "^9.21.0",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  }
+}
