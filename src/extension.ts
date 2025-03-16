@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
 import axios, { AxiosInstance } from 'axios';
 import cron from 'node-cron';
-import path from 'path';
-//allowImportingTsExtensions
 import { ConfigPanel } from './configPanel';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { buildPrompt } from './defaultPrompt';
+import {  StreamWriter} from "./streamWriter";
+import dayjs  from 'dayjs';
 interface ReportConfig {
   projectPath: string;
   aiModel: string;
@@ -30,10 +30,13 @@ export class ReportGenerator {
   private git;
   private config: vscode.WorkspaceConfiguration;
 
+  private streamWriter: StreamWriter;
+
   constructor() {
      console.log('Initializing ReportGenerator');
     this.config = vscode.workspace.getConfiguration('reportGenerator');
     this.git = simpleGit();
+    this.streamWriter = new StreamWriter();
     console.log('Current config:', this.getCurrentConfig());
   }
 
@@ -41,7 +44,7 @@ export class ReportGenerator {
     try {
       const log = await this.git.log({ since });
       return log.all.map((commit: { date: string; message: string }) => `${commit.date}: ${commit.message}`);
-    } catch (error) {
+    } catch ( error) {
       vscode.window.showErrorMessage('Failed to retrieve git commits');
       return [];
     }
@@ -101,7 +104,7 @@ export class ReportGenerator {
       
       allCommits.push(
         ...commits.all.map(commit => 
-          `[${project.name}] ${commit.date}: ${commit.message}`
+          `${dayjs(commit.date).format('YYYY-MM-DD HH:mm:ss')}: ${commit.message}`
         )
       );
     }
@@ -111,42 +114,34 @@ export class ReportGenerator {
     }
 
     // Generate AI report with streaming
-    const report = await this.generateStreamingAIReport(allCommits, {
-      baseURL,
-      modelId,
-      apiKey
-    });
+    const finalReport = await this.generateStreamingAIReport(allCommits, config);
 
-    // Format final report
-    let finalReport = `# Project Report\n\n`;
-    finalReport += `**Time Range:** ${startDate} to ${endDate}\n\n`;
-    finalReport += report;
-    
-    if (additionalInfo) {
-      finalReport += `\n\n**Additional Information:**\n${additionalInfo}`;
-    }
+
 
     return finalReport;
   }
 
   private async generateStreamingAIReport(
     commits: string[],
-    config: { baseURL: string; modelId: string; apiKey: string }
+    config: ReportConfig
   ): Promise<string> {
-    const { baseURL, modelId, apiKey } = config;
-    
-    const prompt = `Analyze these git commits and generate a report:\n\n${
-      commits.join('\n')
-    }\n\nFocus on key changes, progress made, and important updates.`;
+    const { baseURL, modelId, apiKey, reportType, startDate, endDate, additionalInfo } = config;
 
-    // console.log('Generating report with AI:', prompt,commits);
+    const prompt = buildPrompt(reportType || 'daily', {
+      commits: commits.join('\n'),
+      start_date: startDate,
+      end_date: endDate,
+      additionalInfo: additionalInfo
+    });
+
+ console.log('Generating report with AI:', prompt,commits);
     try {
       const response = await axios.post(
         `${baseURL}/chat/completions`,
         {
           model: modelId,
           messages: [
-            { role: "system", content: "You are a helpful assistant." },
+            {role:'system',content:'本次对话为独立会话，请忽略之前所有对话历史'},
             { role: "user", content: prompt }
           ],
           stream: true
@@ -160,66 +155,66 @@ export class ReportGenerator {
         }
       );
 
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage('No active document found');
-        return '';
-      }
+ 
 
-      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      console.log('AI response:', response.data);
+      // let editor = vscode.window.activeTextEditor;
+      // if (!editor) {
+      //   // Create new document if no active editor exists
+      //   const doc = await vscode.workspace.openTextDocument({
+      //     language: 'markdown'
+      //   });
+      //   editor = await vscode.window.showTextDocument(doc);
+      // }
+      this.streamWriter.prepareEditor();
+
+
+
+      // const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      // console.log('AI response:', response.data);
       response.data.on('data', async (chunk: Buffer) => {
+        let contents = '';
         try {
           const lines = chunk.toString().split('\n');
+          // console.log('Lines:', lines);
+
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.trim().indexOf('[DONE]') > -1) {
+              // Finalize the report
+              // await editor.edit(editBuilder => {
+              //   const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+              //   const position = lastLine.range.end;
+              //   editBuilder.insert(position, '\n\n## Report Complete');
+              // });
+              this.streamWriter.writeStream('\n\n## Report Complete');
+              continue;
+            }
+            if (line.trim() === '') {continue;} // 跳过空行
+
+            console.log('AI response:', line,line.indexOf('data') ,JSON.parse(line.slice(6)).choices[0].delta.content);
+            
+            if (line.indexOf('data') > -1) {
               const data = JSON.parse(line.slice(6));
               if (data.choices[0].delta.content) {
                 let content = data.choices[0].delta.content;
-                console.log('Writing to editor:', content);
-                
-                // Ensure editor is in markdown mode
-                if (editor.document.languageId !== 'markdown') {
-                  await vscode.languages.setTextDocumentLanguage(editor.document, 'markdown');
-                }
-                
-                // Enhanced markdown processing
-                const markdownPatterns = [
-                  { regex: /```([\s\S]*?)```/g, replace: '```$1```' }, // Preserve code blocks
-                  { regex: /### (.*)/g, replace: '### $1' }, // Preserve headers
-                  { regex: /\*\*(.*?)\*\*/g, replace: '**$1**' }, // Preserve bold
-                  { regex: /\*(.*?)\*/g, replace: '*$1*' }, // Preserve italics
-                  { regex: /!\[(.*?)\]\((.*?)\)/g, replace: '![$1]($2)' }, // Preserve images
-                  { regex: /\[(.*?)\]\((.*?)\)/g, replace: '[$1]($2)' }, // Preserve links
-                  { regex: /^- (.*)/g, replace: '- $1' }, // Preserve lists
-                  { regex: /^\d+\. (.*)/g, replace: '$&' } // Preserve numbered lists
-                ];
-
-                // Apply markdown formatting
-                for (const pattern of markdownPatterns) {
-                  content = content.replace(pattern.regex, pattern.replace);
-                }
-
-                await editor.edit(editBuilder => {
-                  const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-                  const position = lastLine.range.end;
-                  editBuilder.insert(position, content);
-                });
-                await sleep(50); // Adjust typing speed here
+                contents += content;
+                console.log('Writing to editor11:', contents);
               }
             }
           }
+
+          this.streamWriter.writeStream(contents);
+     
         } catch (error) {
           console.error('Error processing AI response:', error);
         }
       });
 
       await new Promise((resolve, reject) => {
-        response.data.on('end', resolve);
-        response.data.on('error', reject);
-      });
+      response.data.on('end', resolve);
+      response.data.on('error', reject);
+    });
 
-      return 'Report generated successfully';
+      // return 'Report generated successfully';
     } catch (error) {
       vscode.window.showErrorMessage('Failed to generate report with AI');
       return '';
@@ -324,16 +319,6 @@ export class ReportGenerator {
     }
   }
 
-  // public async updateConfig(config: ReportConfig): Promise<void> {
-  //   console.log('Updating config:', config);
-  //   await this.config.update('projectPath', config.projectPath, vscode.ConfigurationTarget.Global);
-  //   await this.config.update('aiModel', config.aiModel, vscode.ConfigurationTarget.Global);
-  //   await this.config.update('apiKey', config.apiKey, vscode.ConfigurationTarget.Global);
-  //   await this.config.update('dailyReportTime', config.dailyReportTime, vscode.ConfigurationTarget.Global);
-  //   await this.config.update('weeklyReportDay', config.weeklyReportDay, vscode.ConfigurationTarget.Global);
-  //   await this.config.update('monthlyReportDay', config.monthlyReportDay, vscode.ConfigurationTarget.Global);
-  //   console.log('Config updated successfully');
-  // }
 
   public setupSchedules() {
     // Daily schedule
@@ -366,67 +351,12 @@ class SettingsTreeItem extends vscode.TreeItem {
   }
 }
 
-class SettingsTreeDataProvider implements vscode.TreeDataProvider<SettingsTreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<SettingsTreeItem | undefined | null> = new vscode.EventEmitter();
-  readonly onDidChangeTreeData: vscode.Event<SettingsTreeItem | undefined | null> = this._onDidChangeTreeData.event;
 
-  constructor(private reportGenerator: ReportGenerator) {}
-
-  refresh(): void {
-    this._onDidChangeTreeData.fire(null);
-  }
-
-  getTreeItem(element: SettingsTreeItem): vscode.TreeItem {
-    return element;
-  }
-
-  getChildren(element?: SettingsTreeItem): Thenable<SettingsTreeItem[]> {
-    if (element) {
-      return Promise.resolve([]);
-    }
-
-    return Promise.resolve([
-      new SettingsTreeItem(
-        'Project Path',
-        vscode.TreeItemCollapsibleState.None,
-        {
-          command: 'report-generate.configureSettings',
-          title: 'Configure Project Path'
-        }
-      ),
-      new SettingsTreeItem(
-        'AI Model',
-        vscode.TreeItemCollapsibleState.None,
-        {
-          command: 'report-generate.configureSettings',
-          title: 'Configure AI Model'
-        }
-      ),
-      new SettingsTreeItem(
-        'API Key1',
-        vscode.TreeItemCollapsibleState.None,
-        {
-          command: 'report-generate.configureSettings',
-          title: 'Configure API Key'
-        }
-      ),
-      new SettingsTreeItem(
-        'Report Schedules',
-        vscode.TreeItemCollapsibleState.Collapsed,
-        {
-          command: 'report-generate.configureSettings',
-          title: 'Configure Report Schedules'
-        }
-      )
-    ]);
-  }
-}
 
 export function activate(context: vscode.ExtensionContext) {
   const reportGenerator = new ReportGenerator();
 
-  // Create tree data provider
-  const settingsTreeDataProvider = new SettingsTreeDataProvider(reportGenerator);
+
   
   // Register configuration panel
   const configPanel = new ConfigPanel(context, reportGenerator);
@@ -444,10 +374,7 @@ export function activate(context: vscode.ExtensionContext) {
     // vscode.commands.registerCommand('report-generate.generateMonthlyReport', () => {
     //   reportGenerator.showReport('monthly');
     // }),
-    // vscode.window.registerTreeDataProvider(
-    //   'report-generate.settings',
-    //   settingsTreeDataProvider
-    // ),
+
     // vscode.commands.registerCommand('report-generate.configureSettings', () => {
     //   // Open settings view when configure command is called
     //   vscode.commands.executeCommand('workbench.view.extension.report-generate');
@@ -461,5 +388,3 @@ export function activate(context: vscode.ExtensionContext) {
   // Setup scheduled reports
   reportGenerator.setupSchedules();
 }
-
-export function deactivate() {}

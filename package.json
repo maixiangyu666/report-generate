@@ -47,14 +47,13 @@
       ]
     },
     "views": {
-      
       "report-generate": [
         {
           "id": "report-generate.settings",
           "name": "Settings",
           "type": "webview",
           "contextualTitle": "Report Settings",
-       "icon": "images/icon.png",
+          "icon": "images/icon.png",
           "visibility": "visible"
         }
       ]
@@ -94,7 +93,11 @@
         },
         "reportGenerator.reportType": {
           "type": "string",
-          "enum": ["daily", "weekly", "monthly"],
+          "enum": [
+            "daily",
+            "weekly",
+            "monthly"
+          ],
           "default": "daily",
           "description": "Type of report to generate"
         },
@@ -112,7 +115,10 @@
                 "description": "Project path"
               }
             },
-            "required": ["name", "path"]
+            "required": [
+              "name",
+              "path"
+            ]
           },
           "default": [],
           "description": "List of projects with their paths"
@@ -174,8 +180,8 @@
   },
   "dependencies": {
     "axios": "^1.8.1",
+    "dayjs": "^1.11.13",
     "node-cron": "^3.0.3",
-    "@microsoft/fetch-event-source": "^2.0.1",
     "simple-git": "^3.27.0"
   },
   "devDependencies": {
