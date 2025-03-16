@@ -1,10 +1,51 @@
-# report-generate README
+# Report Generate Extension for VS Code
 
-This is the README for your extension "report-generate". After writing up a brief description, we recommend including the following sections.
+The Report Generate extension provides a powerful toolset for creating and managing reports directly within Visual Studio Code. It supports multiple report types, data sources, and output formats, making it an essential tool for developers and data analysts.
+
+
+
+
+
+
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Multiple Report Types**: Generate Daily, Weekly, and Monthly reports
+- **Flexible Data Sources**: Connect to various data sources including databases, APIs, and local files
+- **Customizable Output**: Export reports in PDF, HTML, and Markdown formats
+- **Interactive Configuration**: User-friendly configuration panel for setting report parameters
+- **Report Management**: View, regenerate, and delete previous reports
+- **VS Code Integration**: Seamless integration with VS Code's UI and command palette
+
+## Usage
+
+To generate reports using the report-generate extension:
+
+1. Open the Report Configuration Panel:
+   - Click the report icon in the VS Code Activity Bar
+   - Or use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P on macOS) and search for "Report Generate: Open Configuration"
+
+2. Configure Report Settings:
+   - In the configuration panel, set up your report parameters:
+     * Select report type (Daily/Weekly/Monthly)
+     * Choose data sources
+     * Set date range
+     * Configure output format (PDF/HTML/Markdown)
+   - All changes are automatically saved
+
+3. Generate Report:
+   - Click the "Generate Report" button in the configuration panel
+   - The extension will:
+     * Process your configuration
+     * Generate the report
+     * Open it in a new editor tab
+   - The generated report will be saved in your workspace's "reports" folder
+
+4. (Optional) Manage Reports:
+   - Use the "Recent Reports" section in the configuration panel to:
+     * View previously generated reports
+     * Regenerate reports with updated settings
+     * Delete old reports
 
 For example if there is an image subfolder under your extension project workspace:
 
@@ -14,58 +55,59 @@ For example if there is an image subfolder under your extension project workspac
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code 1.75.0 or higher
+- Node.js 16.x or higher (for extension development)
+- npm 8.x or higher
+
+## Installation
+
+1. Open VS Code
+2. Go to the Extensions view (Ctrl+Shift+X or Cmd+Shift+X on macOS)
+3. Search for "Report Generate"
+4. Click Install
+5. Reload VS Code when prompted
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `reportGenerator.startDate`: Start date for report generation (string)
+* `reportGenerator.endDate`: End date for report generation (string)
+* `reportGenerator.baseURL`: Base URL for API requests (string)
+* `reportGenerator.modelId`: Model ID for AI generation (string)
+* `reportGenerator.timeRange`: Time range for report generation (string)
+* `reportGenerator.additionalInfo`: Additional information for reports (string)
+* `reportGenerator.reportType`: Type of report to generate (enum: daily, weekly, monthly)
+* `reportGenerator.projects`: List of projects with their paths (array of objects)
+* `reportGenerator.aiModel`: AI model to use for report generation (enum: deepseek, openai, custom)
+* `reportGenerator.apiKey`: API key for the selected AI model (string)
+* `reportGenerator.dailyReportTime`: Time to generate daily report (HH:mm format)
+* `reportGenerator.weeklyReportDay`: Day to generate weekly report (enum: Monday-Sunday)
+* `reportGenerator.monthlyReportDay`: Day of month to generate monthly report (number, 1-28)
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- Large reports may cause performance issues in VS Code
+- PDF generation requires system-level PDF viewer
+- Some data sources may require additional configuration
 
-## Release Notes
+## Contributing
 
-Users appreciate release notes as you update your extension.
+We welcome contributions! Please follow these steps:
 
-### 1.0.0
+1. Fork the repository
+2. Create a new branch for your feature or bugfix
+3. Make your changes
+4. Write tests for your changes
+5. Submit a pull request
 
-Initial release of ...
+Please ensure your code follows our coding standards and includes appropriate documentation.
 
-### 1.0.1
+## Repository
 
-Fixed issue #.
+The source code for this extension is available on GitHub:  
+https://github.com/maixiangyu666/report-generate.git
 
-### 1.1.0
+## License
 
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+This extension is licensed under the MIT License. See the [LICENSE](https://github.com/maixiangyu666/report-generate/blob/main/LICENSE) file for details.

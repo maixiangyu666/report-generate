@@ -1,6 +1,10 @@
 {
   "type": "commonjs",
   "name": "report-generate",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maixiangyu666/report-generate.git"
+  },
   "displayName": "report-generate",
   "description": "",
   "publisher": "xiangyu-ma",
@@ -169,7 +173,6 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run package",
     "compile": "webpack --config webpack.config.cjs",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
@@ -189,7 +192,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/node-cron": "^3.0.11",
-    "@types/vscode": "^1.98.0",
+    "@types/vscode": "^1.89.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
     "@vscode/test-electron": "^2.4.1",
