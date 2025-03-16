@@ -3,6 +3,7 @@
   "name": "report-generate",
   "displayName": "report-generate",
   "description": "",
+  "publisher": "xiangyu-ma",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.89.0"
