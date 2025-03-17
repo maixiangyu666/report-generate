@@ -40,47 +40,9 @@ export class ReportGenerator {
     console.log('Current config:', this.getCurrentConfig());
   }
 
-  private async getGitCommits(since: string): Promise<string[]> {
-    try {
-      const log = await this.git.log({ since });
-      return log.all.map((commit: { date: string; message: string }) => `${commit.date}: ${commit.message}`);
-    } catch ( error) {
-      vscode.window.showErrorMessage('Failed to retrieve git commits');
-      return [];
-    }
-  }
 
-  private async generateAIReport(commits: string[], period: string): Promise<string> {
-    const model = this.config.get<string>('aiModel') || 'deepseek';
-    const apiKey = this.config.get<string>('apiKey') || '';
-    
-    const prompt = `Generate a concise ${period} report based on these git commits:\n\n${
-      commits.join('\n')
-    }\n\nFocus on key changes, progress made, and important updates.`;
 
-    try {
-      const response = await axios.post(
-        this.getModelEndpoint(model),
-        { prompt },
-        { headers: { Authorization: `Bearer ${apiKey}` } }
-      );
-      return response.data.choices[0].message.content;
-    } catch (error) {
-      vscode.window.showErrorMessage('Failed to generate report with AI');
-      return '';
-    }
-  }
 
-  private getModelEndpoint(model: string): string {
-    switch (model) {
-      case 'deepseek':
-        return 'https://api.deepseek.com/v1/chat/completions';
-      case 'openai':
-        return 'https://api.openai.com/v1/chat/completions';
-      default:
-        return '';
-    }
-  }
 
   public async generateReport(config: ReportConfig) {
     const { projects, startDate, endDate, timeRange, additionalInfo, baseURL, modelId, apiKey } = config;
@@ -216,51 +178,111 @@ export class ReportGenerator {
 
       // return 'Report generated successfully';
     } catch (error) {
+      console.error('Failed to generate report with AI:', error);
       vscode.window.showErrorMessage('Failed to generate report with AI');
       return '';
     }
   }
 
-  public async showReport(period: string) {
+  public async showReport(period: string): Promise<vscode.TextDocument | undefined> {
     console.log(`Generating ${period} report`);
-    const projectPath = this.config.get<string>('projectPath');
-    if (!projectPath) {
-      const msg = 'Project path not configured';
+    const projects = this.config.get<Array<{ name: string, path: string }>>('projects');
+    if (!projects || projects.length === 0) {
+      const msg = 'No projects configured';
       console.error(msg);
       vscode.window.showErrorMessage(msg);
       return;
     }
 
-    this.git.cwd(projectPath);
+    let allCommits: string[] = [];
+    const dateRange = this.getDateRange(period);
     
-    const since = this.getSinceDate(period);
-    const commits = await this.getGitCommits(since);
+    // Get commits from all projects
+    for (const project of projects) {
+      try {
+        this.git.cwd(project.path);
+        const commits = await this.git.log([
+          '--since',
+          dateRange.start.toISOString(),
+          '--until',
+          dateRange.end.toISOString(),
+          '--date=iso'
+        ]);
+
+        console.log(`Commits for project ${JSON.stringify(dateRange)},${project.name},${period}:`, commits.all);
+        allCommits.push(
+          ...commits.all.map(commit => 
+            ` ${dayjs(commit.date).format('YYYY-MM-DD HH:mm:ss')}: ${commit.message}`
+          )
+        );
+      } catch (error) {
+        console.error(`Failed to get commits from project ${project.name}:`, error);
+      }
+    }
     
-    if (commits.length > 0) {
-      const report = await this.generateAIReport(commits, period);
+    if (allCommits.length > 0) {
+      const report = await this.generateStreamingAIReport(allCommits, {
+        projectPath: '',
+        aiModel: this.config.get<string>('aiModel') || 'deepseek',
+        apiKey: this.config.get<string>('apiKey') || '',
+        dailyReportTime: this.config.get<string>('dailyReportTime') || '09:00',
+        weeklyReportDay: this.config.get<string>('weeklyReportDay') || 'Monday',
+        monthlyReportDay: this.config.get<number>('monthlyReportDay') || 1,
+        reportType: period,
+        startDate: dateRange.start.toISOString(),
+        endDate: dateRange.end.toISOString(),
+        baseURL: this.config.get<string>('baseURL') || '',
+        modelId: this.config.get<string>('modelId') || '',
+        timeRange: '',
+        additionalInfo: '',
+        projects: this.config.get<Array<{ name: string, path: string }>>('projects') || []
+      });
       if (report) {
-        const doc = await vscode.workspace.openTextDocument({
-          content: report,
-          language: 'markdown'
-        });
-        vscode.window.showTextDocument(doc);
+   
+          const doc = await vscode.workspace.openTextDocument({
+            content: `## ${period} Report\n\n${report}`,
+            language: 'markdown'
+          });
+          await vscode.window.showTextDocument(doc);
+          return doc;
       }
     } else {
-      vscode.window.showInformationMessage(`No commits found for ${period} report`);
+      vscode.window.showInformationMessage(`No commits found for ${period} report across all projects`);
     }
   }
 
-  private getSinceDate(period: string): string {
+  private getDateRange(period: string): { start: Date, end: Date } {
     const now = new Date();
+    const start = new Date(now);
+    
     switch (period) {
       case 'daily':
-        return new Date(now.setDate(now.getDate() - 1)).toISOString();
+        start.setDate(now.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        return {
+          start,
+          end: now
+        };
       case 'weekly':
-        return new Date(now.setDate(now.getDate() - 7)).toISOString();
+        start.setDate(now.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
+        return {
+          start,
+          end: now
+        };
       case 'monthly':
-        return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+        start.setMonth(now.getMonth() - 1);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        return {
+          start,
+          end: now
+        };
       default:
-        return new Date().toISOString();
+        return {
+          start: now,
+          end: now
+        };
     }
   }
   public getCurrentConfig(): ReportConfig {
@@ -341,15 +363,7 @@ export class ReportGenerator {
   }
 }
 
-class SettingsTreeItem extends vscode.TreeItem {
-  constructor(
-    public readonly label: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly command?: vscode.Command
-  ) {
-    super(label, collapsibleState);
-  }
-}
+
 
 
 
@@ -365,15 +379,18 @@ export function activate(context: vscode.ExtensionContext) {
   
   // Register commands and views
   context.subscriptions.push(
-    // vscode.commands.registerCommand('report-generate.generateDailyReport', () => {
-    //   reportGenerator.showReport('daily');
-    // }),
-    // vscode.commands.registerCommand('report-generate.generateWeeklyReport', () => {
-    //   reportGenerator.showReport('weekly');
-    // }),
-    // vscode.commands.registerCommand('report-generate.generateMonthlyReport', () => {
-    //   reportGenerator.showReport('monthly');
-    // }),
+    vscode.commands.registerCommand('report-generate.generateDailyReport', async () => {
+       await reportGenerator.showReport('daily');
+
+    }),
+    vscode.commands.registerCommand('report-generate.generateWeeklyReport', async () => {
+        await reportGenerator.showReport('weekly');
+
+    }),
+    vscode.commands.registerCommand('report-generate.generateMonthlyReport', async () => {
+       await reportGenerator.showReport('monthly');
+   
+    }),
 
     // vscode.commands.registerCommand('report-generate.configureSettings', () => {
     //   // Open settings view when configure command is called

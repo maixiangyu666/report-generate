@@ -19,7 +19,6 @@
     "onCommand:report-generate.generateDailyReport",
     "onCommand:report-generate.generateWeeklyReport",
     "onCommand:report-generate.generateMonthlyReport",
-    "onCommand:report-generate.configureSettings",
     "onView:report-generate.settings"
   ],
   "main": "./dist/extension.js",
@@ -36,10 +35,6 @@
       {
         "command": "report-generate.generateMonthlyReport",
         "title": "Generate Monthly Report"
-      },
-      {
-        "command": "report-generate.configureSettings",
-        "title": "Configure Report Settings"
       }
     ],
     "viewsContainers": {

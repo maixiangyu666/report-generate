@@ -8,15 +8,15 @@ export class StreamWriter {
     // 初始化编辑器文档
     async prepareEditor() {
   
-     let editor = vscode.window.activeTextEditor;
-      if (!editor) {
+    //  let editor = vscode.window.activeTextEditor;
+    //   if (!editor) {
         // Create new document if no active editor exists
         const doc = await vscode.workspace.openTextDocument({
           language: 'markdown'
         });
-        editor = await vscode.window.showTextDocument(doc);
-      }
-     this.editor = editor;
+        this.editor  = await vscode.window.showTextDocument(doc);
+      // }
+  
      this.lastPosition = new vscode.Position(0, 0);
       
     }
