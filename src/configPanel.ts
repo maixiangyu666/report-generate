@@ -193,8 +193,8 @@ export class ConfigPanel implements vscode.WebviewViewProvider {
         <div class="section">
           <h2>LLM Configuration</h2>
           <div class="form-group">
-            <label for="baseURL">Base URL</label>
-            <input type="text" id="baseURL" placeholder="Enter API base URL" />
+            <label for="fullURL">full URL</label>
+            <input type="text" id="baseURL" placeholder="Enter API full URL" />
           </div>
           <div class="form-group">
             <label for="apiKey">API Key</label>

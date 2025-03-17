@@ -99,14 +99,15 @@ export class ReportGenerator {
  console.log('Generating report with AI:', prompt,commits);
     try {
       const response = await axios.post(
-        `${baseURL}/chat/completions`,
+        `${baseURL}`,
         {
           model: modelId,
           messages: [
             {role:'system',content:'本次对话为独立会话，请忽略之前所有对话历史'},
             { role: "user", content: prompt }
           ],
-          stream: true
+          stream: true,
+          temperature: 1.5,
         },
         {
           headers: { 
