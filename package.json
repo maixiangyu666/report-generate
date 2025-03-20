@@ -1,17 +1,18 @@
 {
   "type": "commonjs",
-  "name": "report-generate",
+  "name": "reportGenerate",
   "repository": {
     "type": "git",
     "url": "https://github.com/maixiangyu666/report-generate.git"
   },
-  "displayName": "report-generate",
-  "description": "",
+  "displayName": "reportGenerate",
+  "description": "a vscode extension for generating daily, weekly, and monthly reports according to read the commits of the projects Git",
   "publisher": "xiangyu-ma",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.89.0"
   },
+  "icon": "images/icon.png",
   "categories": [
     "Other"
   ],
@@ -19,7 +20,7 @@
     "onCommand:report-generate.generateDailyReport",
     "onCommand:report-generate.generateWeeklyReport",
     "onCommand:report-generate.generateMonthlyReport",
-    "onView:report-generate.settings"
+    "onView:report-generate.settings"  
   ],
   "main": "./dist/extension.js",
   "contributes": {

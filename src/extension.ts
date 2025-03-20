@@ -148,7 +148,7 @@ export class ReportGenerator {
               //   const position = lastLine.range.end;
               //   editBuilder.insert(position, '\n\n## Report Complete');
               // });
-              this.streamWriter.writeStream('\n\n## Report Complete');
+              // this.streamWriter.writeStream('\n\n## Report Complete');
               continue;
             }
             if (line.trim() === '') {continue;} // 跳过空行

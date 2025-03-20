@@ -60,7 +60,7 @@ export class StreamWriter {
               this.lastPosition = this.lastPosition.translate(1);
             });
             
-            this.autoScroll(editor);
+            // this.autoScroll(editor);
           }
         } finally {
           this.isWriting = false;
@@ -68,15 +68,15 @@ export class StreamWriter {
     }
 
       
-    // 自动滚动到末尾
-    private autoScroll(editor: vscode.TextEditor) {
-        if (this.lastPosition) {
-        const range = new vscode.Range(this.lastPosition, this.lastPosition);
-        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-        }
+    // // 自动滚动到末尾
+    // private autoScroll(editor: vscode.TextEditor) {
+    //     if (this.lastPosition) {
+    //     const range = new vscode.Range(this.lastPosition, this.lastPosition);
+    //     editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+    //     }
  
 
-    }
+    // }
 
     private delay(ms: number) {
         return new Promise(resolve => setTimeout(resolve, ms));
